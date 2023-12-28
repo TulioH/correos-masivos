@@ -1,38 +1,39 @@
 # Correos Masivos
 
-Este proyecto contiene un conjunto de herramientas y scripts que permiten el envío de correos electrónicos de forma masiva. Está diseñado para facilitar la comunicación con una gran cantidad de destinatarios de manera eficiente y automatizada.
+Este proyecto ofrece herramientas para el envío automatizado de correos electrónicos a gran escala. Facilita la comunicación con numerosos destinatarios de forma eficiente y controlada.
 
-## Características
+## Funcionalidades
 
-- **Automatización del Envío:** Configura tus campañas de correo y deja que el sistema se encargue del resto.
-- **Personalización:** Adapta los correos para cada destinatario incluyendo información relevante y personal.
-- **Seguimiento:** Monitorea la entrega y la apertura de los correos para medir la efectividad de tus campañas.
+- **Automatización:** Configura campañas y permite que el sistema realice los envíos automáticamente.
+- **Personalización de Correos:** Adapta cada correo para incluir información específica del destinatario.
 
-## Requisitos Previos
+## Requisitos
 
-Antes de comenzar, asegúrate de tener instalados los siguientes componentes en tu sistema:
+Asegúrate de contar con lo siguiente en tu sistema:
 
 - Go (Golang)
 - Excelize library
-- A SQL database
+- Base de datos SQL
 
-## Instalación
+## Configuración
 
-Para instalar y configurar el proyecto, sigue estos pasos:
+Pasos para instalar y configurar el proyecto:
 
-1. Clona el repositorio en tu máquina local.
-2. Instala las dependencias con `go mod tidy`.
-3. Configura las variables de entorno necesarias para la autenticación y el envío de correos.
+1. Clonar el repositorio localmente.
+2. Ejecutar `go mod tidy` para instalar las dependencias.
+3. Establecer las variables de entorno requeridas para la autenticación y envío de correos.
 
 ## Uso
 
-Para comenzar a enviar correos masivos, ejecuta el script principal con los parámetros adecuados:
+Para enviar correos masivos, sigue estos comandos:
 
 ```shell
 go build ./src/cmd
-# para crear la tabla
+# Crear la tabla en la base de datos
 ./cmd.exe -create-table=true
-# inserta los nombre y correos desde un archivo de excel a la base de datos. el excel debe tener el siguiente formato: NOMBRE	CORREO. y solo esas dos columnas
+# Importar contactos de un archivo Excel al formato 'NOMBRE CORREO' (solo dos columnas)
 ./cmd.exe -insert-excel=true -p "./path/excel.xlsx"
-# envia los correos con la configuracion dada en las variables de entorno
+# Importar y enviar correos desde un archivo Excel al formato 'NOMBRE CORREO'
+./cmd.exe -send-from-excel=true -p "./path/excel.xlsx"
+# Enviar correos usando la configuración de variables de entorno
 ./cmd.exe

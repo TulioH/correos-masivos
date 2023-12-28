@@ -21,6 +21,7 @@ import (
 var createTable = flag.Bool("create-table", false, "Set to true to create the table")
 
 var insertFromExcel = flag.Bool("insert-excel", false, "Set to true to insert from excel")
+var sendFromExcel = flag.Bool("send-from-excel", false, "Set to true to send email from excel")
 var excelpath string
 
 var timeout = 100 * time.Second
@@ -33,6 +34,15 @@ func main() {
 
 	// Load environment variables
 	env := config.NewEnv()
+
+	// Set up email variables
+	from := env.Email
+	password := env.Password
+	smtpHost := env.SMTPHost
+	smtpPort := env.SMTPPort
+	subject := env.Subject
+
+	count := env.Begin
 
 	// Set up logger flags
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -58,11 +68,17 @@ func main() {
 
 	// Check if the insert-from-excel flag is set to true, insert rows from excel and exit
 	if *insertFromExcel {
-		if err := insertRowsFromExcel(db, excelpath); err != nil {
+		if err := InsertRowsFromExcel(db, excelpath); err != nil {
 			log.Println(err)
 			time.Sleep(timeout * time.Second)
 			os.Exit(1)
 		}
+		time.Sleep(timeout * time.Second)
+		os.Exit(1)
+	}
+
+	if *sendFromExcel {
+		SendEmailFromExcel(excelpath, env, from, password, smtpHost, smtpPort, subject)
 		time.Sleep(timeout * time.Second)
 		os.Exit(1)
 	}
@@ -79,14 +95,6 @@ func main() {
 	}
 	defer rows.Close()
 
-	// Set up email variables
-	from := env.Email
-	password := env.Password
-	smtpHost := env.SMTPHost
-	smtpPort := env.SMTPPort
-	subject := env.Subject
-
-	count := env.Begin
 	for rows.Next() {
 		var (
 			NOMBRE string
@@ -166,7 +174,9 @@ func SendEmail(env *config.Env, from string, password string, to []string, smtpH
 
 	m.SetBody("text/html", body)
 
-	m.Embed("./email/logo.png", mail.SetHeader(map[string][]string{"Content-ID": {fmt.Sprintf("<%s>", "logo")}}))
+	if _, err := os.Stat("./email/logo.png"); err == nil {
+		m.Embed("./email/logo.png", mail.SetHeader(map[string][]string{"Content-ID": {fmt.Sprintf("<%s>", "logo")}}))
+	}
 
 	attachmentsPath := env.Attachments
 
@@ -250,7 +260,7 @@ func migrate(db *sql.DB) {
 // It uses a transaction to ensure that all inserts are successful,
 // and commits the transaction at the end. If an error occurs during
 // any step, it returns an error and the transaction is rolled back.
-func insertRowsFromExcel(db *sql.DB, filePath string) error {
+func InsertRowsFromExcel(db *sql.DB, filePath string) error {
 	// Open the Excel file
 	f, err := excelize.OpenFile(filePath)
 	if err != nil {
@@ -291,6 +301,31 @@ func insertRowsFromExcel(db *sql.DB, filePath string) error {
 	// Log a success message
 	log.Println("All rows have been inserted successfully.")
 	return nil
+}
+
+func SendEmailFromExcel(filePath string, env *config.Env, from string, Password string, smtpHost string, smtpPort int, subject string) {
+	// Open the Excel file
+	f, err := excelize.OpenFile(filePath)
+	if err != nil {
+		log.Printf("error opening Excel file: %v", err)
+		time.Sleep(timeout * time.Second)
+		os.Exit(1)
+	}
+
+	// Get all rows from the first sheet
+	rows := f.GetRows(f.GetSheetName(1))
+	count := env.Begin
+	fmt.Println("cantidad de filas", len(rows))
+	// Iterate over the rows, skipping the first one if it contains headers
+	for _, row := range rows[(count + 1):] {
+		fmt.Printf("NOMBRE: %s, CORREO: %s\n", row[0], row[1])
+		SendEmail(env, from, Password, []string{row[1]}, smtpHost, smtpPort, subject, row[0])
+		count++
+		fmt.Println(count)
+	}
+
+	// Log a success message
+	log.Println("All rows have been sended successfully.")
 }
 
 func LogFatal(err error) {
